@@ -72,6 +72,21 @@ def options(opt):
     opt.add_option('--enable-test', action='store_true', default=False, dest='ENABLE_TEST',
                    help='Build test programs')
 
+# inspired by: http://www.gnu.org/software/autoconf-archive/ax_compile_check_sizeof.html
+def check_ctype_size(conf, datatype, define_name):
+    for bytesize in [1, 2, 4, 8, 16]:
+        code="#include <sys/types.h>\nint main (int argc,char **argv) { switch (0) case 0: case (sizeof (%s) == %i):; }" % (datatype, bytesize)
+        try:
+            conf.check(
+               fragment=code,
+               execute = False,
+               msg='Checking for %s has size %i' % (datatype, bytesize),
+               mandatory=True)
+            conf.define(define_name, bytesize)
+            break
+        except:
+            pass
+
 def configure(conf):
     conf.load('compiler_c')
     conf.load('compiler_cxx')
@@ -170,27 +185,11 @@ def configure(conf):
     
 #    print conf.env
 
-    conf.check( fragment='#include <stdio.h>\n int main ( int argc, char **argv ) { printf("%u", (unsigned)sizeof(short)); return 0; }',
-                   execute=True,
-                   define_ret=True,
-                   quote=False,
-                   define_name='SIZEOF_SHORT',
-                 msg='Checking sizeof short',
-                               mandatory=True);
+    check_ctype_size(conf, 'short', 'SIZEOF_SHORT')
 
-    conf.check( fragment='#include <stdio.h>\n int main ( int argc, char **argv ) { printf("%u", (unsigned)sizeof(int)); return 0; }',
-                   execute=True,
-                   quote=False,
-                   define_ret=True,
-                 msg='Checking sizeof int',
-                   define_name='SIZEOF_INT', mandatory=True );
+    check_ctype_size(conf, 'int', 'SIZEOF_INT')
 
-    conf.check( fragment='#include <stdio.h>\n int main ( int argc, char **argv ) { printf("%u", (unsigned)sizeof(long)); return 0; }',
-                   quote=False,
-                   execute=True,
-                   define_ret=True,
-                 msg='Checking sizeof long',
-                   define_name='SIZEOF_LONG', mandatory=True );
+    check_ctype_size(conf, 'long', 'SIZEOF_LONG')
     
     if int(conf.get_define('SIZEOF_SHORT')) == 2:
         conf.define( 'U16', 'unsigned short', quote=False )
